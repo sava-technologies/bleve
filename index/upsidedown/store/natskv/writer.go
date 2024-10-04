@@ -1,0 +1,67 @@
+package natskv
+
+import (
+	"fmt"
+
+	store "github.com/blevesearch/upsidedown_store_api"
+)
+
+type Writer struct {
+	store *Store
+}
+
+var _ store.KVWriter = (*Writer)(nil)
+
+func (w *Writer) NewBatch() store.KVBatch {
+	return store.NewEmulatedBatch(w.store.mo)
+}
+
+func (w *Writer) NewBatchEx(options store.KVBatchOptions) ([]byte, store.KVBatch, error) {
+	return make([]byte, options.TotalBytes), w.NewBatch(), nil
+}
+
+func (w *Writer) ExecuteBatch(batch store.KVBatch) error {
+	var err error
+	emulatedBatch, ok := batch.(*store.EmulatedBatch)
+	if !ok {
+		return fmt.Errorf("wrong type of batch")
+	}
+
+	bucket := w.store.natsKV
+
+	for k, mergeOps := range emulatedBatch.Merger.Merges {
+		kb := []byte(k)
+		existingVal, err := bucket.Get(k)
+		if err != nil {
+			return err
+		}
+		mergedVal, fullMergeOk := w.store.mo.FullMerge(kb, existingVal.Value(), mergeOps)
+		if !fullMergeOk {
+			return fmt.Errorf("merge operator returned failure")
+		}
+		_, err = bucket.Put(k, mergedVal)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, op := range emulatedBatch.Ops {
+		if op.V != nil {
+			_, err = bucket.Put(string(op.K), op.V)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = bucket.Delete(string(op.K))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (w *Writer) Close() error {
+	return nil
+}
