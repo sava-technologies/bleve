@@ -45,21 +45,21 @@ func TestBoltDBWriterOwnsBytes(t *testing.T) {
 //		test.CommonTestPrefixIteratorSeek(t, s.rv)
 //	}
 //
-// //
-// // func TestBoltDBRangeIterator(t *testing.T) {
-// // 	s := open(t, nil)
-// // 	defer cleanup(t, s)
-// // 	test.CommonTestRangeIterator(t, s)
-// // }
-// //
-// // func TestBoltDBRangeIteratorSeek(t *testing.T) {
-// // 	s := open(t, nil)
-// // 	defer cleanup(t, s)
-// // 	test.CommonTestRangeIteratorSeek(t, s)
-// // }
-// //
-// // func TestBoltDBMerge(t *testing.T) {
-// // 	s := open(t, &test.TestMergeCounter{})
-// // 	defer cleanup(t, s)
-// // 	test.CommonTestMerge(t, s)
-// // }
+
+func TestBoltDBRangeIterator(t *testing.T) {
+	s := open(t, nil)
+	defer s.teardown()
+	test.CommonTestRangeIterator(t, s.rv)
+}
+
+// func TestBoltDBRangeIteratorSeek(t *testing.T) {
+// 	s := open(t, nil)
+// 	defer s.teardown()
+// 	test.CommonTestRangeIteratorSeek(t, s.rv)
+// }
+
+// func TestBoltDBMerge(t *testing.T) {
+// 	s := open(t, &test.TestMergeCounter{})
+// 	defer s.teardown()
+// 	test.CommonTestMerge(t, s.rv)
+// }
