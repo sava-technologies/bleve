@@ -19,9 +19,11 @@ var _ store.KVStore = (*Store)(nil)
 type Store struct {
 	kvName string
 	natsKV nats.KeyValue
-	ffKV   kv.KeyValuer[*kvByteValue]
-	mo     store.MergeOperator
-	nc     *nats.Conn
+	// TODO: only used in one place, might better
+	// to completelty use natsKV interface
+	ffKV kv.KeyValuer[*kvByteValue]
+	mo   store.MergeOperator
+	nc   *nats.Conn
 }
 
 type kvByteValue struct {

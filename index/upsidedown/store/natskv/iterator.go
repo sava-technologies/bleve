@@ -173,14 +173,8 @@ type Iterator struct {
 
 // Seek will advance the iterator to the specified key
 func (it *Iterator) Seek(key []byte) {
-
 	it.reset()
-	if it.prefix != nil {
-		it.seekPrefix(key)
-	} else {
-		it.seek(key)
-	}
-
+	it.seek(key)
 }
 
 func (it *Iterator) seek(key []byte) {
@@ -195,25 +189,40 @@ func (it *Iterator) seek(key []byte) {
 			it.key = keyAtCursorBytes
 			break
 		}
-	}
-}
 
-func (it *Iterator) seekPrefix(key []byte) {
-	if bytes.HasPrefix(key, it.prefix) {
-		for e := range it.cursor {
-
-			if e.Created().After(it.date) {
-				continue
-			}
-
-			keyAtCursorBytes := []byte(e.Key())
-			if bytes.HasPrefix(key, keyAtCursorBytes) {
-				it.key = keyAtCursorBytes
-				break
-			}
+		// This is potentially problmenatic
+		// There is still an underlying assumtion that all keys are ordered
+		// which chould be true??? if the _id for the document int he index is always the guarrented to be in order we do not have an issue???. (This statemtne makes no sense at all but it's just a future  note).
+		if bytes.Compare(key, keyAtCursorBytes) < 0 {
+			it.key = keyAtCursorBytes
+			break
 		}
 	}
 }
+
+// func (it *Iterator) seekPrefix(key []byte) {
+// 	// prefix := key
+//
+// 	lookup := it.prefix
+// 	if key != nil {
+// 		lookup = key
+// 	}
+//
+// 	if bytes.HasPrefix(key, it.prefix) {
+// 		for e := range it.cursor {
+//
+// 			if e.Created().After(it.date) {
+// 				continue
+// 			}
+//
+// 			keyAtCursorBytes := []byte(e.Key())
+// 			if bytes.HasPrefix(keyAtCursorBytes, lookup) {
+// 				it.key = keyAtCursorBytes
+// 				break
+// 			}
+// 		}
+// 	}
+// }
 
 func (it *Iterator) Next() {
 	if it.key == nil {

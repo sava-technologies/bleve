@@ -32,19 +32,17 @@ func TestBoltDBWriterOwnsBytes(t *testing.T) {
 	test.CommonTestWriterOwnsBytes(t, s.rv)
 }
 
-//
-//	func TestBoltDBPrefixIterator(t *testing.T) {
-//		s := open(t, nil)
-//		defer s.teardown()
-//		test.CommonTestPrefixIterator(t, s.rv)
-//	}
-//
-//	func TestBoltDBPrefixIteratorSeek(t *testing.T) {
-//		s := open(t, nil)
-//		defer s.teardown()
-//		test.CommonTestPrefixIteratorSeek(t, s.rv)
-//	}
-//
+func TestBoltDBPrefixIterator(t *testing.T) {
+	s := open(t, nil)
+	defer s.teardown()
+	test.CommonTestPrefixIterator(t, s.rv)
+}
+
+// func TestBoltDBPrefixIteratorSeek(t *testing.T) {
+// 	s := open(t, nil)
+// 	defer s.teardown()
+// 	test.CommonTestPrefixIteratorSeek(t, s.rv)
+// }
 
 func TestBoltDBRangeIterator(t *testing.T) {
 	s := open(t, nil)

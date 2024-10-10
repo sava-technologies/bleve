@@ -49,7 +49,8 @@ func (r *Reader) PrefixIterator(prefix []byte) store.KVIterator {
 		store:  r.store,
 		prefix: prefix,
 	}
-	it.Seek(prefix)
+	it.reset()
+	it.nextPrefix()
 	return it
 }
 
