@@ -2,6 +2,7 @@ package natskv
 
 import (
 	"errors"
+	"time"
 
 	"github.com/blevesearch/bleve/v2/registry"
 	store "github.com/blevesearch/upsidedown_store_api"
@@ -81,6 +82,7 @@ func (s *Store) Close() error {
 
 func (s *Store) Reader() (store.KVReader, error) {
 	return &Reader{
+		date:  time.Now(),
 		store: s,
 	}, nil
 

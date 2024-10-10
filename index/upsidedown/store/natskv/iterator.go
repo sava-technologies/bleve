@@ -3,8 +3,10 @@ package natskv
 import (
 	"bytes"
 	"sync"
+	"time"
 
 	store "github.com/blevesearch/upsidedown_store_api"
+	"github.com/nats-io/nats.go"
 )
 
 var _ store.KVIterator = (*RangeIterator)(nil)
@@ -13,8 +15,10 @@ type RangeIterator struct {
 	store *Store
 	m     sync.Mutex
 
-	cursor     <-chan string
+	cursor     <-chan nats.KeyValueEntry
 	cursorStop func() error
+
+	date time.Time
 
 	key   []byte
 	start []byte
@@ -24,16 +28,19 @@ type RangeIterator struct {
 // TODO: remove first return
 // return starting bytes
 func (it *RangeIterator) inRange(value []byte) ([]byte, bool) {
+	return inRange(it.start, it.end, value)
+}
 
-	if it.start != nil {
-		if bytes.Compare(value, it.start) < 0 {
-			return it.start, false
+func inRange(start, end, value []byte) ([]byte, bool) {
+	if start != nil {
+		if bytes.Compare(value, start) < 0 {
+			return start, false
 		}
 	}
 
-	if it.end != nil {
-		if bytes.Compare(it.end, value) < 0 {
-			return it.end, false
+	if end != nil {
+		if bytes.Compare(end, value) < 0 {
+			return end, false
 		}
 	}
 
@@ -44,15 +51,18 @@ func (it *RangeIterator) inRange(value []byte) ([]byte, bool) {
 func (it *RangeIterator) Seek(key []byte) {
 	it.reset()
 
-	_, ok := it.inRange(key)
-	if !ok {
-		return
+	if key == nil {
+		key = it.start
 	}
 
-	for keyAtCursor := range it.cursor {
-		keyAtCursor := []byte(keyAtCursor)
+	for e := range it.cursor {
+		keyAtCursor := []byte(e.Key())
 
-		_, ok := it.inRange(keyAtCursor)
+		if e.Created().After(it.date) {
+			continue
+		}
+
+		_, ok := inRange(key, it.end, keyAtCursor)
 		if !ok {
 			continue
 		}
@@ -64,27 +74,28 @@ func (it *RangeIterator) Seek(key []byte) {
 }
 
 func (it *RangeIterator) Next() {
-	var value []byte
+	it.key = nil
 
-	for keyAtCursor := range it.cursor {
-		keyAtCursor := []byte(keyAtCursor)
+	for e := range it.cursor {
+		keyAtCursor := []byte(e.Key())
+
+		if e.Created().After(it.date) {
+			continue
+		}
 
 		_, ok := it.inRange(keyAtCursor)
 		if !ok {
 			continue
 		}
 
-		value = keyAtCursor
+		it.key = keyAtCursor
 		break
 	}
 
-	if value == nil {
-		it.key = nil
+	if it.key == nil {
 		_ = it.cursorStop()
 		return
 	}
-
-	it.key = value
 }
 
 func (it *RangeIterator) Key() []byte {
@@ -130,8 +141,8 @@ func (it *RangeIterator) reset() {
 		_ = it.cursorStop()
 	}
 
-	keyLister, _ := it.store.natsKV.ListKeys()
-	it.cursor = keyLister.Keys()
+	keyLister, _ := ListKeys(it.store.natsKV)
+	it.cursor = keyLister.kvEntry
 	it.cursorStop = keyLister.Stop
 }
 
@@ -152,9 +163,10 @@ type Iterator struct {
 	store *Store
 	m     sync.Mutex
 
-	cursor     <-chan string
+	cursor     <-chan nats.KeyValueEntry
 	cursorStop func() error
 
+	date   time.Time
 	key    []byte
 	prefix []byte
 }
@@ -172,8 +184,13 @@ func (it *Iterator) Seek(key []byte) {
 }
 
 func (it *Iterator) seek(key []byte) {
-	for keyAtCursor := range it.cursor {
-		keyAtCursorBytes := []byte(keyAtCursor)
+	for e := range it.cursor {
+		keyAtCursorBytes := []byte(e.Key())
+
+		if e.Created().After(it.date) {
+			continue
+		}
+
 		if bytes.Equal(key, keyAtCursorBytes) {
 			it.key = keyAtCursorBytes
 			break
@@ -183,8 +200,13 @@ func (it *Iterator) seek(key []byte) {
 
 func (it *Iterator) seekPrefix(key []byte) {
 	if bytes.HasPrefix(key, it.prefix) {
-		for keyAtCursor := range it.cursor {
-			keyAtCursorBytes := []byte(keyAtCursor)
+		for e := range it.cursor {
+
+			if e.Created().After(it.date) {
+				continue
+			}
+
+			keyAtCursorBytes := []byte(e.Key())
 			if bytes.HasPrefix(key, keyAtCursorBytes) {
 				it.key = keyAtCursorBytes
 				break
@@ -206,34 +228,40 @@ func (it *Iterator) Next() {
 }
 
 func (it *Iterator) next() {
-	value, ok := <-it.cursor
-	if !ok {
-		it.key = nil
-		_ = it.cursorStop()
-		return
-	}
 
-	it.key = []byte(value)
+	it.key = nil
+	for e := range it.cursor {
+		if e.Created().After(it.date) {
+			continue
+		}
+
+		it.key = []byte(e.Key())
+		break
+	}
 }
 
 func (it *Iterator) nextPrefix() {
-	var value []byte
+	// var value []byte
 
-	for keyAtCursor := range it.cursor {
-		keyAtCursorBytes := []byte(keyAtCursor)
+	it.key = nil
+	for e := range it.cursor {
+		if e.Created().After(it.date) {
+			continue
+		}
+
+		keyAtCursorBytes := []byte(e.Key())
 		if bytes.HasPrefix(keyAtCursorBytes, it.prefix) {
-			value = keyAtCursorBytes
+			it.key = keyAtCursorBytes
 			break
 		}
 	}
 
-	if value == nil {
-		it.key = nil
+	if it.key == nil {
 		_ = it.cursorStop()
 		return
 	}
 
-	it.key = value
+	// it.key = value
 }
 
 func (it *Iterator) Current() ([]byte, []byte, bool) {
@@ -279,8 +307,8 @@ func (it *Iterator) reset() {
 		_ = it.cursorStop()
 	}
 
-	keyLister, _ := it.store.natsKV.ListKeys()
-	it.cursor = keyLister.Keys()
+	keyLister, _ := ListKeys(it.store.natsKV)
+	it.cursor = keyLister.kvEntry
 	it.cursorStop = keyLister.Stop
 }
 

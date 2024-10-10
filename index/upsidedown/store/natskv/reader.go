@@ -2,7 +2,7 @@ package natskv
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	store "github.com/blevesearch/upsidedown_store_api"
 )
@@ -10,20 +10,25 @@ import (
 var _ store.KVReader = (*Reader)(nil)
 
 type Reader struct {
+	date  time.Time
 	store *Store
 }
 
 func (r *Reader) Get(key []byte) ([]byte, error) {
-	ctx := context.Background()
-	kvResult, _, err := r.store.ffKV.Get(ctx, string(key))
+	e, err := r.store.natsKV.Get(string(key))
 	if err != nil {
 		return nil, err
 	}
-	return kvResult.Value, nil
+	if e.Created().After(r.date) {
+		return nil, nil
+	}
+	return e.Value(), nil
 }
 
 func (r *Reader) MultiGet(keys [][]byte) ([][]byte, error) {
 	ctx := context.Background()
+
+	// TODO: read isolation timestamps/date after
 	kvResults, err := r.store.ffKV.GetAll(ctx, byteSlicesToStrings(keys))
 	if err != nil {
 		return nil, err
@@ -40,6 +45,7 @@ func (r *Reader) MultiGet(keys [][]byte) ([][]byte, error) {
 // visit all K/V pairs with the provided prefix
 func (r *Reader) PrefixIterator(prefix []byte) store.KVIterator {
 	it := &Iterator{
+		date:   r.date,
 		store:  r.store,
 		prefix: prefix,
 	}
@@ -51,12 +57,12 @@ func (r *Reader) PrefixIterator(prefix []byte) store.KVIterator {
 // visit all K/V pairs >= start AND < end
 func (r *Reader) RangeIterator(start, end []byte) store.KVIterator {
 	it := &RangeIterator{
+		date:  r.date,
 		store: r.store,
 		start: start,
 		end:   end,
 	}
-	fmt.Println(">> range iter")
-	it.Seek(start)
+	it.Seek(nil)
 	return it
 }
 
