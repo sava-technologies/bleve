@@ -47,7 +47,7 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 	}
 
 	// TODO: rename
-	jsc, ok := config["nats_conn"].(nats.JetStreamContext)
+	jsc, ok := config["jsc"].(nats.JetStreamContext)
 	if !ok || jsc == nil {
 		return nil, errors.New("config field jsc required")
 	}

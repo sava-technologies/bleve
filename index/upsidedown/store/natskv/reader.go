@@ -2,6 +2,7 @@ package natskv
 
 import (
 	"context"
+	"fmt"
 
 	store "github.com/blevesearch/upsidedown_store_api"
 )
@@ -42,19 +43,20 @@ func (r *Reader) PrefixIterator(prefix []byte) store.KVIterator {
 		store:  r.store,
 		prefix: prefix,
 	}
-	it.restart(prefix)
+	it.Seek(prefix)
 	return it
 }
 
 // RangeIterator returns a KVIterator that will
 // visit all K/V pairs >= start AND < end
 func (r *Reader) RangeIterator(start, end []byte) store.KVIterator {
-	it := &Iterator{
+	it := &RangeIterator{
 		store: r.store,
 		start: start,
 		end:   end,
 	}
-	it.restart(start)
+	fmt.Println(">> range iter")
+	it.Seek(start)
 	return it
 }
 
