@@ -13,23 +13,24 @@ func TestBoltDBKVCrud(t *testing.T) {
 	test.CommonTestKVCrud(t, ss.rv)
 }
 
+// PASSED
 func TestBoltDBReaderIsolation(t *testing.T) {
 	ss := open(t, nil)
 	defer ss.teardown()
 	test.CommonTestReaderIsolation(t, ss.rv)
 }
 
-// func TestBoltDBReaderOwnsGetBytes(t *testing.T) {
-// 	s := open(t, nil)
-// 	defer s.teardown()
-// 	test.CommonTestReaderOwnsGetBytes(t, s.rv)
-// }
-//
-// func TestBoltDBWriterOwnsBytes(t *testing.T) {
-// 	s := open(t, nil)
-// 	defer s.teardown()
-// 	test.CommonTestWriterOwnsBytes(t, s.rv)
-// }
+func TestBoltDBReaderOwnsGetBytes(t *testing.T) {
+	s := open(t, nil)
+	defer s.teardown()
+	test.CommonTestReaderOwnsGetBytes(t, s.rv)
+}
+
+func TestBoltDBWriterOwnsBytes(t *testing.T) {
+	s := open(t, nil)
+	defer s.teardown()
+	test.CommonTestWriterOwnsBytes(t, s.rv)
+}
 
 //
 //	func TestBoltDBPrefixIterator(t *testing.T) {
