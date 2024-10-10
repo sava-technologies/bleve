@@ -38,11 +38,11 @@ func TestBoltDBPrefixIterator(t *testing.T) {
 	test.CommonTestPrefixIterator(t, s.rv)
 }
 
-// func TestBoltDBPrefixIteratorSeek(t *testing.T) {
-// 	s := open(t, nil)
-// 	defer s.teardown()
-// 	test.CommonTestPrefixIteratorSeek(t, s.rv)
-// }
+func TestBoltDBPrefixIteratorSeek(t *testing.T) {
+	s := open(t, nil)
+	defer s.teardown()
+	test.CommonTestPrefixIteratorSeek(t, s.rv)
+}
 
 func TestBoltDBRangeIterator(t *testing.T) {
 	s := open(t, nil)

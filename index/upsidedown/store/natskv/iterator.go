@@ -185,6 +185,12 @@ func (it *Iterator) seek(key []byte) {
 			continue
 		}
 
+		if it.prefix != nil {
+			if !bytes.HasPrefix(keyAtCursorBytes, it.prefix) {
+				continue
+			}
+		}
+
 		if bytes.Equal(key, keyAtCursorBytes) {
 			it.key = keyAtCursorBytes
 			break
@@ -192,7 +198,9 @@ func (it *Iterator) seek(key []byte) {
 
 		// This is potentially problmenatic
 		// There is still an underlying assumtion that all keys are ordered
-		// which chould be true??? if the _id for the document int he index is always the guarrented to be in order we do not have an issue???. (This statemtne makes no sense at all but it's just a future  note).
+		// which chould be true??? if the _id for the document int he index
+		// is always the guarrented to be in order we do not have an issue???.
+		// (This statemtne makes no sense at all but it's just a future  note).
 		if bytes.Compare(key, keyAtCursorBytes) < 0 {
 			it.key = keyAtCursorBytes
 			break
