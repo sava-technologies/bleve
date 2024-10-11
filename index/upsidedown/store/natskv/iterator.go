@@ -39,7 +39,7 @@ func inRange(start, end, value []byte) ([]byte, bool) {
 	}
 
 	if end != nil {
-		if bytes.Compare(end, value) < 0 {
+		if bytes.Compare(end, value) <= 0 {
 			return end, false
 		}
 	}
@@ -64,6 +64,10 @@ func (it *RangeIterator) Seek(key []byte) {
 
 		_, ok := inRange(key, it.end, keyAtCursor)
 		if !ok {
+			continue
+		}
+
+		if bytes.Compare(keyAtCursor, it.start) < 0 {
 			continue
 		}
 

@@ -50,11 +50,11 @@ func TestBoltDBRangeIterator(t *testing.T) {
 	test.CommonTestRangeIterator(t, s.rv)
 }
 
-// func TestBoltDBRangeIteratorSeek(t *testing.T) {
-// 	s := open(t, nil)
-// 	defer s.teardown()
-// 	test.CommonTestRangeIteratorSeek(t, s.rv)
-// }
+func TestBoltDBRangeIteratorSeek(t *testing.T) {
+	s := open(t, nil)
+	defer s.teardown()
+	test.CommonTestRangeIteratorSeek(t, s.rv)
+}
 
 // func TestBoltDBMerge(t *testing.T) {
 // 	s := open(t, &test.TestMergeCounter{})
