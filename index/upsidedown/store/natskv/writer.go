@@ -1,9 +1,11 @@
 package natskv
 
 import (
+	"errors"
 	"fmt"
 
 	store "github.com/blevesearch/upsidedown_store_api"
+	"github.com/nats-io/nats.go"
 )
 
 type Writer struct {
@@ -31,11 +33,18 @@ func (w *Writer) ExecuteBatch(batch store.KVBatch) error {
 
 	for k, mergeOps := range emulatedBatch.Merger.Merges {
 		kb := []byte(k)
-		existingVal, err := bucket.Get(k)
+
+		var existingVal []byte
+		entry, err := bucket.Get(k)
 		if err != nil {
-			return err
+			if !errors.Is(err, nats.ErrKeyNotFound) {
+				return err
+			}
+		} else {
+			existingVal = entry.Value()
 		}
-		mergedVal, fullMergeOk := w.store.mo.FullMerge(kb, existingVal.Value(), mergeOps)
+
+		mergedVal, fullMergeOk := w.store.mo.FullMerge(kb, existingVal, mergeOps)
 		if !fullMergeOk {
 			return fmt.Errorf("merge operator returned failure")
 		}
