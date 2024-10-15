@@ -29,13 +29,13 @@ func (w *Writer) ExecuteBatch(batch store.KVBatch) error {
 		return fmt.Errorf("wrong type of batch")
 	}
 
-	bucket := w.store.natsKV
+	bucket := w.store.kv
 
 	for k, mergeOps := range emulatedBatch.Merger.Merges {
 		kb := []byte(k)
 
 		var existingVal []byte
-		entry, err := bucket.Get(k)
+		entry, err := bucket.Get(kb)
 		if err != nil {
 			if !errors.Is(err, nats.ErrKeyNotFound) {
 				return err

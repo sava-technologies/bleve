@@ -1,22 +1,56 @@
 package natskv
 
-import "github.com/nats-io/nats.go"
+import (
+	"github.com/nats-io/nats.go"
+)
 
 type keyLister struct {
 	watcher nats.KeyWatcher
 	// TODO: better interface, some values are not set
 	// due to nats.WatchOpta MetaOnly
-	kvEntry chan nats.KeyValueEntry
+	kvEntry chan keyValueEntry
+}
+
+type keyValueEntry struct {
+	nats.KeyValueEntry
+}
+
+// TODO: handle errors
+func (e *keyValueEntry) KeyEncoded() ([]byte, error) {
+	encKey := EncondedKey{}
+	k := e.Key()
+	r, err := encKey.decode(k)
+	return r, err
+}
+
+type KV struct {
+	bucket nats.KeyValue
+}
+
+func (kv *KV) Get(key []byte) (nats.KeyValueEntry, error) {
+	encKey := EncondedKey{key}
+	return kv.bucket.Get(encKey.encode())
+}
+
+func (kv *KV) Put(key string, value []byte) (revision uint64, err error) {
+	encKey := EncondedKey{[]byte(key)}
+	return kv.bucket.Put(encKey.encode(), value)
+}
+
+func (kv *KV) Delete(key string, opts ...nats.DeleteOpt) error {
+	encKey := EncondedKey{[]byte(key)}
+	return kv.bucket.Delete(encKey.encode(), opts...)
 }
 
 // ListKeys will return all keys.
-func ListKeys(kv nats.KeyValue, opts ...nats.WatchOpt) (*keyLister, error) {
+func (kv_ *KV) ListKeys(opts ...nats.WatchOpt) (*keyLister, error) {
+	kv := kv_.bucket
 	opts = append(opts, nats.IgnoreDeletes(), nats.MetaOnly())
 	watcher, err := kv.WatchAll(opts...)
 	if err != nil {
 		return nil, err
 	}
-	kl := &keyLister{watcher: watcher, kvEntry: make(chan nats.KeyValueEntry, 256)}
+	kl := &keyLister{watcher: watcher, kvEntry: make(chan keyValueEntry, 256)}
 
 	go func() {
 		defer func() {
@@ -28,13 +62,13 @@ func ListKeys(kv nats.KeyValue, opts ...nats.WatchOpt) (*keyLister, error) {
 			if entry == nil {
 				return
 			}
-			kl.kvEntry <- entry
+			kl.kvEntry <- keyValueEntry{entry}
 		}
 	}()
 	return kl, nil
 }
 
-func (kl *keyLister) Keys() <-chan nats.KeyValueEntry {
+func (kl *keyLister) Keys() <-chan keyValueEntry {
 	return kl.kvEntry
 }
 

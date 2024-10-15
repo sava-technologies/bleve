@@ -6,7 +6,6 @@ import (
 	"time"
 
 	store "github.com/blevesearch/upsidedown_store_api"
-	"github.com/nats-io/nats.go"
 )
 
 var _ store.KVIterator = (*RangeIterator)(nil)
@@ -15,7 +14,7 @@ type RangeIterator struct {
 	store *Store
 	m     sync.Mutex
 
-	cursor     <-chan nats.KeyValueEntry
+	cursor     <-chan keyValueEntry
 	cursorStop func() error
 
 	date time.Time
@@ -56,7 +55,7 @@ func (it *RangeIterator) Seek(key []byte) {
 	}
 
 	for e := range it.cursor {
-		keyAtCursor := []byte(e.Key())
+		keyAtCursor, _ := e.KeyEncoded()
 
 		if e.Created().After(it.date) {
 			continue
@@ -81,7 +80,8 @@ func (it *RangeIterator) Next() {
 	it.key = nil
 
 	for e := range it.cursor {
-		keyAtCursor := []byte(e.Key())
+		// TODO: err
+		keyAtCursor, _ := e.KeyEncoded()
 
 		if e.Created().After(it.date) {
 			continue
@@ -113,7 +113,7 @@ func (it *RangeIterator) Valid() bool {
 func (it *RangeIterator) Current() ([]byte, []byte, bool) {
 	it.m.Lock()
 	defer it.m.Unlock()
-	if it.cursor == nil {
+	if it.cursor == nil || !it.Valid() {
 		return nil, nil, false
 	}
 
@@ -129,7 +129,7 @@ func (it *RangeIterator) Value() []byte {
 }
 
 func (it *RangeIterator) value() []byte {
-	entry, err := it.store.natsKV.Get(string(it.key))
+	entry, err := it.store.kv.Get(it.key)
 	if err != nil {
 		return nil
 	}
@@ -145,7 +145,7 @@ func (it *RangeIterator) reset() {
 		_ = it.cursorStop()
 	}
 
-	keyLister, _ := ListKeys(it.store.natsKV)
+	keyLister, _ := it.store.kv.ListKeys()
 	it.cursor = keyLister.kvEntry
 	it.cursorStop = keyLister.Stop
 }
@@ -167,7 +167,7 @@ type Iterator struct {
 	store *Store
 	m     sync.Mutex
 
-	cursor     <-chan nats.KeyValueEntry
+	cursor     <-chan keyValueEntry
 	cursorStop func() error
 
 	date   time.Time
@@ -183,7 +183,8 @@ func (it *Iterator) Seek(key []byte) {
 
 func (it *Iterator) seek(key []byte) {
 	for e := range it.cursor {
-		keyAtCursorBytes := []byte(e.Key())
+		// TODO: err
+		keyAtCursorBytes, _ := e.KeyEncoded()
 
 		if e.Created().After(it.date) {
 			continue
@@ -246,6 +247,7 @@ func (it *Iterator) Next() {
 	} else {
 		it.next()
 	}
+
 }
 
 func (it *Iterator) next() {
@@ -256,7 +258,7 @@ func (it *Iterator) next() {
 			continue
 		}
 
-		it.key = []byte(e.Key())
+		it.key, _ = e.KeyEncoded()
 		break
 	}
 }
@@ -270,7 +272,7 @@ func (it *Iterator) nextPrefix() {
 			continue
 		}
 
-		keyAtCursorBytes := []byte(e.Key())
+		keyAtCursorBytes, _ := e.KeyEncoded()
 		if bytes.HasPrefix(keyAtCursorBytes, it.prefix) {
 			it.key = keyAtCursorBytes
 			break
@@ -288,7 +290,7 @@ func (it *Iterator) nextPrefix() {
 func (it *Iterator) Current() ([]byte, []byte, bool) {
 	it.m.Lock()
 	defer it.m.Unlock()
-	if it.cursor == nil {
+	if it.cursor == nil || !it.Valid() {
 		return nil, nil, false
 	}
 
@@ -312,7 +314,7 @@ func (it *Iterator) Value() []byte {
 }
 
 func (it *Iterator) value() []byte {
-	entry, err := it.store.natsKV.Get(string(it.key))
+	entry, err := it.store.kv.Get(it.key)
 	if err != nil {
 		return nil
 	}
@@ -328,7 +330,7 @@ func (it *Iterator) reset() {
 		_ = it.cursorStop()
 	}
 
-	keyLister, _ := ListKeys(it.store.natsKV)
+	keyLister, _ := it.store.kv.ListKeys()
 	it.cursor = keyLister.kvEntry
 	it.cursorStop = keyLister.Stop
 }

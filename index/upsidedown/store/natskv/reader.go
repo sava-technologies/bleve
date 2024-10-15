@@ -2,9 +2,11 @@ package natskv
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	store "github.com/blevesearch/upsidedown_store_api"
+	"github.com/nats-io/nats.go"
 )
 
 var _ store.KVReader = (*Reader)(nil)
@@ -15,8 +17,11 @@ type Reader struct {
 }
 
 func (r *Reader) Get(key []byte) ([]byte, error) {
-	e, err := r.store.natsKV.Get(string(key))
+	e, err := r.store.kv.Get(key)
 	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	if e.Created().After(r.date) {
@@ -74,7 +79,8 @@ func (r *Reader) Close() error {
 func byteSlicesToStrings(byteSlices [][]byte) []string {
 	strings := make([]string, len(byteSlices))
 	for i, bytes := range byteSlices {
-		strings[i] = string(bytes)
+		e := EncondedKey{bytes}
+		strings[i] = e.encode()
 	}
 	return strings
 }
