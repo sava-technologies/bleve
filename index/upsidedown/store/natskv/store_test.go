@@ -6,14 +6,12 @@ import (
 	"github.com/blevesearch/upsidedown_store_api/test"
 )
 
-// PASSED
 func TestBoltDBKVCrud(t *testing.T) {
 	ss := open(t, nil)
 	defer ss.teardown()
 	test.CommonTestKVCrud(t, ss.rv)
 }
 
-// PASSED
 func TestBoltDBReaderIsolation(t *testing.T) {
 	ss := open(t, nil)
 	defer ss.teardown()
