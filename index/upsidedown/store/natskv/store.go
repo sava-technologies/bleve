@@ -17,14 +17,11 @@ const (
 var _ store.KVStore = (*Store)(nil)
 
 type Store struct {
-	kvName string
-	kv     KV
+	kv KV
 	// TODO: only used in one place, might better
-	// to completelty use natsKV interface
+	// to import only the nats kv interface?
 	ffKV kv.KeyValuer[*kvByteValue]
 	mo   store.MergeOperator
-	// TODO: only pass in kv?
-	nc *nats.Conn
 }
 
 type kvByteValue struct {
@@ -45,36 +42,17 @@ func (v *kvByteValue) UnmarshalValue(b []byte) error {
 }
 
 func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, error) {
-	nc, ok := config["nats_conn"].(*nats.Conn)
-	if !ok || nc == nil {
-		return nil, errors.New("config field nats_conn required")
-	}
-
-	// TODO: use jetstream api
-	jsc, ok := config["jsc"].(nats.JetStreamContext)
-	if !ok || jsc == nil {
-		return nil, errors.New("config field jsc required")
-	}
-	// jetstream.KeyValue
-
-	kvName, ok := config["kv_name"].(string)
-	if !ok || kvName == "" {
-		return nil, errors.New("config field kv_name required")
-	}
-
-	natsKV, err := jsc.KeyValue(kvName)
-	if err != nil {
-		return nil, err
+	natsKV, ok := config["nats_key_value"].(nats.KeyValue)
+	if !ok {
+		return nil, errors.New("config field nats_key_value required")
 	}
 
 	ffKV := kv.New[*kvByteValue](natsKV)
 
 	s := &Store{
-		kvName: kvName,
-		kv:     KV{bucket: natsKV},
-		ffKV:   ffKV,
-		nc:     nc,
-		mo:     mo,
+		kv:   KV{bucket: natsKV},
+		ffKV: ffKV,
+		mo:   mo,
 	}
 
 	return s, nil

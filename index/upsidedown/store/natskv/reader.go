@@ -33,7 +33,6 @@ func (r *Reader) Get(key []byte) ([]byte, error) {
 func (r *Reader) MultiGet(keys [][]byte) ([][]byte, error) {
 	ctx := context.Background()
 
-	// TODO: read isolation timestamps/date after
 	kvResults, err := r.store.ffKV.GetAll(ctx, byteSlicesToStrings(keys))
 	if err != nil {
 		return nil, err
@@ -46,8 +45,6 @@ func (r *Reader) MultiGet(keys [][]byte) ([][]byte, error) {
 	return values, nil
 }
 
-// PrefixIterator returns a KVIterator that will
-// visit all K/V pairs with the provided prefix
 func (r *Reader) PrefixIterator(prefix []byte) store.KVIterator {
 	it := &Iterator{
 		date:   r.date,
@@ -59,8 +56,6 @@ func (r *Reader) PrefixIterator(prefix []byte) store.KVIterator {
 	return it
 }
 
-// RangeIterator returns a KVIterator that will
-// visit all K/V pairs >= start AND < end
 func (r *Reader) RangeIterator(start, end []byte) store.KVIterator {
 	it := &RangeIterator{
 		date:  r.date,

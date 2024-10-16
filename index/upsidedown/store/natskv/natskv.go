@@ -6,8 +6,6 @@ import (
 
 type keyLister struct {
 	watcher nats.KeyWatcher
-	// TODO: better interface, some values are not set
-	// due to nats.WatchOpta MetaOnly
 	kvEntry chan keyValueEntry
 }
 
@@ -15,7 +13,7 @@ type keyValueEntry struct {
 	nats.KeyValueEntry
 }
 
-// TODO: handle errors
+// TODO: handle error returned
 func (e *keyValueEntry) KeyEncoded() ([]byte, error) {
 	encKey := EncondedKey{}
 	k := e.Key()
@@ -24,6 +22,7 @@ func (e *keyValueEntry) KeyEncoded() ([]byte, error) {
 }
 
 type KV struct {
+	// TODO: migrate to Jetsteam KeyValue interface
 	bucket nats.KeyValue
 }
 
@@ -42,7 +41,6 @@ func (kv *KV) Delete(key string, opts ...nats.DeleteOpt) error {
 	return kv.bucket.Delete(encKey.encode(), opts...)
 }
 
-// ListKeys will return all keys.
 func (kv_ *KV) ListKeys(opts ...nats.WatchOpt) (*keyLister, error) {
 	kv := kv_.bucket
 	opts = append(opts, nats.IgnoreDeletes(), nats.MetaOnly())

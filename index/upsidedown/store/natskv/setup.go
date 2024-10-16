@@ -34,9 +34,7 @@ func open(t *testing.T, mo store.MergeOperator) testSetup {
 	}
 
 	rv, err := New(mo, map[string]interface{}{
-		"jsc":       jsc,
-		"nats_conn": nc,
-		"kv_name":   "test",
+		"nats_key_value": kv,
 	})
 	if err != nil {
 		t.Fatal(err)

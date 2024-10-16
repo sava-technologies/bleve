@@ -10,22 +10,22 @@ func TestIterator(t *testing.T) {
 			start: []byte{'4'},
 		}
 
-		_, ok := ri.inRange([]byte{'0'})
+		ok := ri.inRange([]byte{'0'})
 		if ok {
 			t.Errorf("expected not ok")
 		}
 
-		_, ok = ri.inRange([]byte{'3'})
+		ok = ri.inRange([]byte{'3'})
 		if ok {
 			t.Errorf("expected not ok")
 		}
 
-		_, ok = ri.inRange([]byte{'4'})
+		ok = ri.inRange([]byte{'4'})
 		if !ok {
 			t.Errorf("expected ok")
 		}
 
-		_, ok = ri.inRange([]byte("999999"))
+		ok = ri.inRange([]byte("999999"))
 		if !ok {
 			t.Errorf("expected ok")
 		}
@@ -37,17 +37,17 @@ func TestIterator(t *testing.T) {
 			end:   []byte{'4'},
 		}
 
-		_, ok := ri.inRange([]byte{'0'})
+		ok := ri.inRange([]byte{'0'})
 		if !ok {
 			t.Errorf("expected ok")
 		}
 
-		_, ok = ri.inRange([]byte{'1'})
+		ok = ri.inRange([]byte{'1'})
 		if !ok {
 			t.Errorf("expected ok")
 		}
 
-		_, ok = ri.inRange([]byte("999999"))
+		ok = ri.inRange([]byte("999999"))
 		if ok {
 			t.Errorf("expected not ok")
 		}
