@@ -1,4 +1,4 @@
-module github.com/blevesearch/bleve/v2
+module github.com/sava-technologies/bleve/v2
 
 go 1.21.0
 
@@ -7,6 +7,7 @@ toolchain go1.21.3
 require (
 	github.com/RoaringBitmap/roaring v1.9.3
 	github.com/bits-and-blooms/bitset v1.12.0
+	github.com/blevesearch/bleve/v2 v2.4.2
 	github.com/blevesearch/bleve_index_api v1.1.12
 	github.com/blevesearch/geo v0.1.20
 	github.com/blevesearch/go-faiss v1.0.22
